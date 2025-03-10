@@ -13,20 +13,6 @@
       pkgs = nixpkgs.legacyPackages.${system};
 
       packageNames = [ "hledger" ];
-      haskellPackages_1 =
-        pkgs.haskell.packages.${ghc}.extend (hself: hsuper: {
-          base-compat = hsuper.base-compat_0_14_1;
-          base-compat-batteries = hsuper.base-compat-batteries_0_14_1;
-          aeson = hsuper.aeson_2_2_3_0;
-          time-compat = hsuper.time-compat_1_9_7;
-          tasty = hsuper.tasty_1_5_2;
-          hashable = hsuper.hashable_1_5_0_0;
-        });
-      haskellPackages =
-        haskellPackages_1.extend (hself: hsuper: {
-          hledger-lib = hself.callCabal2nix "hledger-lib" "${self}/hledger-lib" { };
-          hledger = hself.callCabal2nix "hledger" "${self}/hledger" { };
-        });
       packagePostOverrides = pkg: with pkgs.haskell.lib.compose; pkgs.lib.pipe pkg [
         disableExecutableProfiling
         disableLibraryProfiling
@@ -41,6 +27,21 @@
 
         dontCheck
       ];
+      haskellPackages_1 =
+        pkgs.haskell.packages.${ghc}.extend (hself: hsuper: {
+          #base-compat = packagePostOverrides hsuper.base-compat_0_14_1;
+          base-compat = hsuper.base-compat_0_14_1.overrideAttrs(oldAttrs: {doCheck = false;});
+          base-compat-batteries = packagePostOverrides hsuper.base-compat-batteries_0_14_1; # .overrideAttrs(oldAttrs: {doCheck = false;});
+          aeson = packagePostOverrides hsuper.aeson_2_2_3_0;
+          time-compat =packagePostOverrides hsuper.time-compat_1_9_7;#.overrideAttrs(oldAttrs: {doCheck = false;});
+          #tasty = hsuper.tasty_1_5_2;
+          #hashable = hsuper.hashable_1_5_0_0;
+        });
+      haskellPackages =
+        haskellPackages_1.extend (hself: hsuper: {
+          hledger-lib = hself.callCabal2nix "hledger-lib" "${self}/hledger-lib" { };
+          hledger = hself.callCabal2nix "hledger" "${self}/hledger" { };
+        });
       makePackages = pkgs:
         pkgs.lib.mapAttrs
           (_name: packagePostOverrides) # we can't apply overrides inside our overlay because it will remove linking info
